@@ -69,9 +69,10 @@
     // Fetch the Excel file on page load
     fetchExcelFile();
 
-    // Function to search the Excel data with partial match for all columns
+    // Function to search the Excel data with strict match for the selected column
     function searchExcel() {
         const searchQuery = document.getElementById('search').value.trim().toLowerCase();
+        const selectedColumn = document.getElementById('columnSelect').value;
         const output = document.getElementById('output');
         output.innerHTML = ''; // Clear previous results
 
@@ -80,11 +81,10 @@
             return;
         }
 
-        // Filter rows where any column contains the search query
+        // Filter rows where the selected column matches the search query exactly
         const results = excelData.filter(row => {
-            return Object.values(row).some(value => 
-                value !== undefined && value.toString().toLowerCase().includes(searchQuery)
-            );
+            const cellValue = row[selectedColumn];
+            return cellValue !== undefined && cellValue.toString().toLowerCase() === searchQuery;
         });
 
         if (results.length > 0) {
