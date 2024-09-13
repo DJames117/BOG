@@ -55,6 +55,7 @@
             cursor: pointer;
             font-size: 16px;
             transition: background-color 0.3s;
+            margin-right: 10px;
         }
 
         button:hover {
@@ -91,6 +92,17 @@
         tr:hover {
             background-color: #f1f1f1;
         }
+
+        .export-controls {
+            margin-top: 20px;
+        }
+
+        .export-controls select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -110,11 +122,22 @@
     <input type="text" id="search" placeholder="Enter search value..." />
     <button onclick="searchExcel()">Search</button>
 
+    <!-- Export controls -->
+    <div class="export-controls">
+        <label for="exportSelect">Export:</label>
+        <select id="exportSelect" onchange="handleExport()">
+            <option value="">Select an option</option>
+            <option value="all">Export All Data</option>
+            <option value="shown">Export Currently Shown Data</option>
+        </select>
+    </div>
+
     <div id="output"></div>
 </div>
 
 <script>
     let excelData = [];
+    let searchResults = [];
     const excelFileUrl = 'https://docs.google.com/spreadsheets/d/1YxUygR2gFxfdAZvmN-Rl_2Mw6yFp7rXE/export?format=xlsx'; // Replace with the URL of your Excel file
 
     // Function to fetch and process the Excel file
@@ -152,17 +175,17 @@
         }
 
         // Filter rows where the selected column matches the search query exactly
-        const results = excelData.filter(row => {
+        searchResults = excelData.filter(row => {
             const cellValue = row[selectedColumn];
             return cellValue !== undefined && cellValue.toString().toLowerCase() === searchQuery;
         });
 
-        if (results.length > 0) {
+        if (searchResults.length > 0) {
             // Create a table to display the filtered results
             let table = '<table><thead><tr>';
 
             // Add table headers based on keys of the first result (excluding specified columns)
-            Object.keys(results[0]).forEach(key => {
+            Object.keys(searchResults[0]).forEach(key => {
                 if (!['Asset ID', 'Client Name', 'Building', 'Shelf'].includes(key)) {
                     table += `<th>${key}</th>`;
                 }
@@ -171,7 +194,7 @@
             table += '</tr></thead><tbody>';
 
             // Add only rows with relevant data
-            results.forEach(result => {
+            searchResults.forEach(result => {
                 table += '<tr>';
                 Object.keys(result).forEach(key => {
                     if (!['Asset ID', 'Client Name', 'Building', 'Shelf'].includes(key)) {
@@ -186,6 +209,54 @@
         } else {
             output.innerHTML = '<p>No matching data found.</p>';
         }
+    }
+
+    // Function to handle export selection
+    function handleExport() {
+        const exportType = document.getElementById('exportSelect').value;
+        if (exportType) {
+            exportData(exportType);
+        }
+    }
+
+    // Function to export data as an Excel file
+    function exportData(type) {
+        let dataToExport;
+        if (type === 'all') {
+            dataToExport = excelData;
+        } else if (type === 'shown') {
+            dataToExport = searchResults;
+        } else {
+            alert('Invalid export type');
+            return;
+        }
+
+        if (dataToExport.length === 0) {
+            alert('No data to export.');
+            return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+        // Create a download link and trigger a download
+        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
+        const blob = new Blob([s2ab(wbout)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = (type === 'all') ? 'all_data.xlsx' : 'shown_data.xlsx';
+        link.click();
+    }
+
+    // Helper function to convert string to array buffer
+    function s2ab(s) {
+        const buf = new ArrayBuffer(s.length);
+        const view = new Uint8Array(buf);
+        for (let i = 0; i < s.length; i++) {
+            view[i] = s.charCodeAt(i) & 0xFF;
+        }
+        return buf;
     }
 </script>
 
