@@ -33,17 +33,29 @@
             max-width: 800px;
         }
 
-        label {
-            font-weight: bold;
-            margin-right: 10px;
+        .search-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
-        select, input[type="text"] {
+        label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .search-container input[type="text"] {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            margin-right: 10px;
             font-size: 16px;
+            width: 180px;
+        }
+
+        .search-container label {
+            display: inline-block;
+            margin-right: 5px;
         }
 
         button {
@@ -70,6 +82,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            border: 1px solid #ddd;
         }
 
         table, th, td {
@@ -83,6 +96,10 @@
 
         th {
             background-color: #f5f5f5;
+            position: -webkit-sticky; /* For Safari */
+            position: sticky;
+            top: 0; /* Stick to the top */
+            z-index: 1; /* Ensure the header is above other content */
         }
 
         tr:nth-child(even) {
@@ -110,17 +127,33 @@
 <div class="container">
     <h2>Fetch and Search Excel File Contents</h2>
 
-    <!-- Input for search query -->
-    <label for="columnSelect">Select Column:</label>
-    <select id="columnSelect">
-        <option value="Department">Department</option>
-        <option value="Box #">Box #</option>
-        <option value="Status">Status</option>
-        <option value="Destroy Date">Destroy Date</option>
-    </select>
+    <!-- Input for search queries across multiple columns in inline format -->
+    <div class="search-container">
+        <div>
+            <label for="departmentSearch">Department:</label>
+            <input type="text" id="departmentSearch" placeholder="Search Department..." />
+        </div>
 
-    <input type="text" id="search" placeholder="Enter search value..." />
+        <div>
+            <label for="boxSearch">Box #:</label>
+            <input type="text" id="boxSearch" placeholder="Search Box #..." />
+        </div>
+
+        <div>
+            <label for="statusSearch">Status:</label>
+            <input type="text" id="statusSearch" placeholder="Search Status..." />
+        </div>
+
+        <div>
+            <label for="destroyDateSearch">Destroy Date:</label>
+            <input type="text" id="destroyDateSearch" placeholder="Search Destroy Date..." />
+        </div>
+    </div>
+
     <button onclick="searchExcel()">Search</button>
+
+    <!-- New View All Button -->
+    <button onclick="viewAllExcel()">View All</button>
 
     <!-- Export controls -->
     <div class="export-controls">
@@ -162,10 +195,37 @@
     // Fetch the Excel file on page load
     fetchExcelFile();
 
-    // Function to search the Excel data with strict match for the selected column
+    // Function to search the Excel data across multiple columns
     function searchExcel() {
-        const searchQuery = document.getElementById('search').value.trim().toLowerCase();
-        const selectedColumn = document.getElementById('columnSelect').value;
+    const departmentQuery = document.getElementById('departmentSearch').value.trim().toLowerCase();
+    const boxQuery = document.getElementById('boxSearch').value.trim().toLowerCase();
+    const statusQuery = document.getElementById('statusSearch').value.trim().toLowerCase();
+    const destroyDateQuery = document.getElementById('destroyDateSearch').value.trim().toLowerCase();
+    const output = document.getElementById('output');
+    output.innerHTML = ''; // Clear previous results
+
+    if (excelData.length === 0) {
+        output.innerHTML = '<p>Please wait while the file is being loaded.</p>';
+        return;
+    }
+
+    // Filter rows based on the search queries for each column
+    searchResults = excelData.filter(row => {
+        const departmentMatch = row['Department'] ? row['Department'].toString().toLowerCase().includes(departmentQuery) : false;
+        const boxMatch = row['Box #'] ? row['Box #'].toString().toLowerCase().includes(boxQuery) : false;
+        const statusMatch = row['Status'] ? row['Status'].toString().toLowerCase().includes(statusQuery) : false;
+        const destroyDateMatch = row['Destroy Date'] ? row['Destroy Date'].toString().toLowerCase().startsWith(destroyDateQuery) : false;
+
+        // Return true only if all conditions are met
+        return departmentMatch && boxMatch && statusMatch && destroyDateMatch;
+    });
+
+    displayData(searchResults);
+}
+
+
+    // New Function to display the entire dataset
+    function viewAllExcel() {
         const output = document.getElementById('output');
         output.innerHTML = ''; // Clear previous results
 
@@ -174,18 +234,21 @@
             return;
         }
 
-        // Filter rows where the selected column matches the search query exactly
-        searchResults = excelData.filter(row => {
-            const cellValue = row[selectedColumn];
-            return cellValue !== undefined && cellValue.toString().toLowerCase() === searchQuery;
-        });
+        // Set searchResults to entire dataset and display
+        searchResults = excelData;
+        displayData(searchResults);
+    }
 
-        if (searchResults.length > 0) {
-            // Create a table to display the filtered results
+    // Function to display data in a table
+    function displayData(data) {
+        const output = document.getElementById('output');
+        
+        if (data.length > 0) {
+            // Create a table to display the results
             let table = '<table><thead><tr>';
 
             // Add table headers based on keys of the first result (excluding specified columns)
-            Object.keys(searchResults[0]).forEach(key => {
+            Object.keys(data[0]).forEach(key => {
                 if (!['Asset ID', 'Client Name', 'Building', 'Shelf'].includes(key)) {
                     table += `<th>${key}</th>`;
                 }
@@ -194,11 +257,11 @@
             table += '</tr></thead><tbody>';
 
             // Add only rows with relevant data
-            searchResults.forEach(result => {
+            data.forEach(result => {
                 table += '<tr>';
                 Object.keys(result).forEach(key => {
                     if (!['Asset ID', 'Client Name', 'Building', 'Shelf'].includes(key)) {
-                        table += `<td>${result[key] !== undefined ? result[key] : ''}</td>`;
+                        table += `<td>${result[key] || ''}</td>`;
                     }
                 });
                 table += '</tr>';
@@ -207,9 +270,20 @@
             table += '</tbody></table>';
             output.innerHTML = table;
         } else {
-            output.innerHTML = '<p>No matching data found.</p>';
+            output.innerHTML = '<p>No results found.</p>';
         }
     }
+
+    // Event listener for search on Enter key press
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            input.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    searchExcel();
+                }
+            });
+        });
+    });
 
     // Function to handle export selection
     function handleExport() {
