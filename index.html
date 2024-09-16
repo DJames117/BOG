@@ -22,6 +22,7 @@
         h2 {
             color: #4a90e2;
             margin-bottom: 20px;
+            font-size: 1.5rem;
         }
 
         .container {
@@ -29,7 +30,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            width: 80%;
+            width: 90%;
             max-width: 800px;
         }
 
@@ -43,19 +44,17 @@
         label {
             font-weight: bold;
             margin-right: 5px;
+            font-size: 0.9rem;
         }
 
         .search-container input[type="text"] {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 16px;
-            width: 180px;
-        }
-
-        .search-container label {
-            display: inline-block;
-            margin-right: 5px;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 200px;
+            box-sizing: border-box;
         }
 
         button {
@@ -65,9 +64,10 @@
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 1rem;
             transition: background-color 0.3s;
             margin-right: 10px;
+            margin-top: 10px;
         }
 
         button:hover {
@@ -79,20 +79,25 @@
         }
 
         table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            border: 1px solid #ddd;
-        }
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    table-layout: fixed; /* Ensure columns have a fixed width */
+}
 
         table, th, td {
             border: 1px solid #ddd;
         }
 
         th, td {
-            padding: 12px;
-            text-align: left;
-        }
+    padding: 12px;
+    text-align: left;
+    font-size: 0.9rem;
+    overflow: hidden; /* Hide overflow content */
+    text-overflow: ellipsis; /* Add ellipsis for overflowing text */
+    white-space: nowrap; /* Prevent text from wrapping to the next line */
+}
 
         th {
             background-color: #f5f5f5;
@@ -118,7 +123,46 @@
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 16px;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 200px;
+            box-sizing: border-box;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .search-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .search-container div {
+                margin-bottom: 10px;
+            }
+
+            button {
+                width: 100%;
+                max-width: none;
+                margin-top: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h2 {
+                font-size: 1.2rem;
+            }
+
+            .container {
+                width: 95%;
+            }
+
+            .search-container input[type="text"] {
+                max-width: 100%;
+            }
+
+            .export-controls select {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -197,32 +241,31 @@
 
     // Function to search the Excel data across multiple columns
     function searchExcel() {
-    const departmentQuery = document.getElementById('departmentSearch').value.trim().toLowerCase();
-    const boxQuery = document.getElementById('boxSearch').value.trim().toLowerCase();
-    const statusQuery = document.getElementById('statusSearch').value.trim().toLowerCase();
-    const destroyDateQuery = document.getElementById('destroyDateSearch').value.trim().toLowerCase();
-    const output = document.getElementById('output');
-    output.innerHTML = ''; // Clear previous results
+        const departmentQuery = document.getElementById('departmentSearch').value.trim().toLowerCase();
+        const boxQuery = document.getElementById('boxSearch').value.trim().toLowerCase();
+        const statusQuery = document.getElementById('statusSearch').value.trim().toLowerCase();
+        const destroyDateQuery = document.getElementById('destroyDateSearch').value.trim().toLowerCase();
+        const output = document.getElementById('output');
+        output.innerHTML = ''; // Clear previous results
 
-    if (excelData.length === 0) {
-        output.innerHTML = '<p>Please wait while the file is being loaded.</p>';
-        return;
+        if (excelData.length === 0) {
+            output.innerHTML = '<p>Please wait while the file is being loaded.</p>';
+            return;
+        }
+
+        // Filter rows based on the search queries for each column
+        searchResults = excelData.filter(row => {
+            const departmentMatch = row['Department'] ? row['Department'].toString().toLowerCase().includes(departmentQuery) : false;
+            const boxMatch = row['Box #'] ? row['Box #'].toString().toLowerCase().includes(boxQuery) : false;
+            const statusMatch = row['Status'] ? row['Status'].toString().toLowerCase().includes(statusQuery) : false;
+            const destroyDateMatch = row['Destroy Date'] ? row['Destroy Date'].toString().toLowerCase().startsWith(destroyDateQuery) : false;
+
+            // Return true only if all conditions are met
+            return departmentMatch && boxMatch && statusMatch && destroyDateMatch;
+        });
+
+        displayData(searchResults);
     }
-
-    // Filter rows based on the search queries for each column
-    searchResults = excelData.filter(row => {
-        const departmentMatch = row['Department'] ? row['Department'].toString().toLowerCase().includes(departmentQuery) : false;
-        const boxMatch = row['Box #'] ? row['Box #'].toString().toLowerCase().includes(boxQuery) : false;
-        const statusMatch = row['Status'] ? row['Status'].toString().toLowerCase().includes(statusQuery) : false;
-        const destroyDateMatch = row['Destroy Date'] ? row['Destroy Date'].toString().toLowerCase().startsWith(destroyDateQuery) : false;
-
-        // Return true only if all conditions are met
-        return departmentMatch && boxMatch && statusMatch && destroyDateMatch;
-    });
-
-    displayData(searchResults);
-}
-
 
     // New Function to display the entire dataset
     function viewAllExcel() {
@@ -239,8 +282,8 @@
         displayData(searchResults);
     }
 
-    // Function to display data in a table
-    function displayData(data) {
+     // Function to display data in a table
+     function displayData(data) {
         const output = document.getElementById('output');
         
         if (data.length > 0) {
@@ -336,3 +379,4 @@
 
 </body>
 </html>
+
