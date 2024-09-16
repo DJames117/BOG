@@ -79,25 +79,21 @@
         }
 
         table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    border: 1px solid #ddd;
-    table-layout: fixed; /* Ensure columns have a fixed width */
-}
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
 
         table, th, td {
             border: 1px solid #ddd;
         }
 
         th, td {
-    padding: 12px;
-    text-align: left;
-    font-size: 0.9rem;
-    overflow: hidden; /* Hide overflow content */
-    text-overflow: ellipsis; /* Add ellipsis for overflowing text */
-    white-space: nowrap; /* Prevent text from wrapping to the next line */
-}
+            padding: 12px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
 
         th {
             background-color: #f5f5f5;
@@ -145,6 +141,15 @@
                 max-width: none;
                 margin-top: 10px;
             }
+
+            table {
+                table-layout: auto; /* Allow table to expand to fit content */
+            }
+
+            th, td {
+                font-size: 0.8rem; /* Smaller text size for smaller screens */
+                word-break: break-word; /* Allow text to wrap on smaller screens */
+            }
         }
 
         @media (max-width: 480px) {
@@ -162,6 +167,10 @@
 
             .export-controls select {
                 max-width: 100%;
+            }
+
+            th, td {
+                font-size: 0.75rem; /* Further reduce text size for very small screens */
             }
         }
     </style>
@@ -282,8 +291,8 @@
         displayData(searchResults);
     }
 
-     // Function to display data in a table
-     function displayData(data) {
+    // Function to display data in a table
+    function displayData(data) {
         const output = document.getElementById('output');
         
         if (data.length > 0) {
@@ -379,4 +388,3 @@
 
 </body>
 </html>
-
