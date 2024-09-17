@@ -204,8 +204,6 @@
     </div>
 
     <button onclick="searchExcel()">Search</button>
-
-    <!-- New View All Button -->
     <button onclick="viewAllExcel()">View All</button>
 
     <!-- Export controls -->
@@ -225,6 +223,7 @@
     let excelData = [];
     let searchResults = [];
     const excelFileUrl = 'https://docs.google.com/spreadsheets/d/1YxUygR2gFxfdAZvmN-Rl_2Mw6yFp7rXE/export?format=xlsx'; // Replace with the URL of your Excel file
+    const excludedColumns = ['Asset ID', 'Client Name', 'Building', 'Shelf'];
 
     // Function to fetch and process the Excel file
     async function fetchExcelFile() {
@@ -236,9 +235,9 @@
             const sheetName = workbook.SheetNames[0]; // Read the first sheet
             const worksheet = workbook.Sheets[sheetName];
             excelData = XLSX.utils.sheet_to_json(worksheet); // Convert sheet to JSON
-            
-            // Show that the file has been loaded successfully
-            document.getElementById('output').innerHTML = '<p>File loaded successfully!</p>';
+
+            // Automatically display all data after file is loaded
+            viewAllExcel();
         } catch (error) {
             console.error('Error fetching or processing the Excel file:', error);
             document.getElementById('output').innerHTML = '<p>Error loading file. Please try again later.</p>';
@@ -276,7 +275,7 @@
         displayData(searchResults);
     }
 
-    // New Function to display the entire dataset
+    // Function to display the entire dataset
     function viewAllExcel() {
         const output = document.getElementById('output');
         output.innerHTML = ''; // Clear previous results
@@ -291,98 +290,68 @@
         displayData(searchResults);
     }
 
-    // Function to display data in a table
+    // Function to display data in table format
     function displayData(data) {
         const output = document.getElementById('output');
-        
-        if (data.length > 0) {
-            // Create a table to display the results
-            let table = '<table><thead><tr>';
-
-            // Add table headers based on keys of the first result (excluding specified columns)
-            Object.keys(data[0]).forEach(key => {
-                if (!['Asset ID', 'Client Name', 'Building', 'Shelf'].includes(key)) {
-                    table += `<th>${key}</th>`;
-                }
-            });
-
-            table += '</tr></thead><tbody>';
-
-            // Add only rows with relevant data
-            data.forEach(result => {
-                table += '<tr>';
-                Object.keys(result).forEach(key => {
-                    if (!['Asset ID', 'Client Name', 'Building', 'Shelf'].includes(key)) {
-                        table += `<td>${result[key] || ''}</td>`;
-                    }
-                });
-                table += '</tr>';
-            });
-
-            table += '</tbody></table>';
-            output.innerHTML = table;
-        } else {
+        if (data.length === 0) {
             output.innerHTML = '<p>No results found.</p>';
+            return;
         }
-    }
 
-    // Event listener for search on Enter key press
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('input[type="text"]').forEach(input => {
-            input.addEventListener('keydown', function (event) {
-                if (event.key === 'Enter') {
-                    searchExcel();
+        let tableHtml = '<table><thead><tr>';
+
+        // Generate table headers, excluding specified columns
+        Object.keys(data[0]).forEach(key => {
+            if (!excludedColumns.includes(key)) {
+                tableHtml += `<th>${key}</th>`;
+            }
+        });
+        tableHtml += '</tr></thead><tbody>';
+
+        // Generate table rows, excluding specified columns
+        data.forEach(row => {
+            tableHtml += '<tr>';
+            Object.keys(row).forEach(key => {
+                if (!excludedColumns.includes(key)) {
+                    tableHtml += `<td>${row[key] || ''}</td>`;
                 }
             });
+            tableHtml += '</tr>';
         });
-    });
 
-    // Function to handle export selection
-    function handleExport() {
-        const exportType = document.getElementById('exportSelect').value;
-        if (exportType) {
-            exportData(exportType);
-        }
+        tableHtml += '</tbody></table>';
+        output.innerHTML = tableHtml;
     }
 
-    // Function to export data as an Excel file
-    function exportData(type) {
-        let dataToExport;
-        if (type === 'all') {
+    // Function to handle export functionality
+    function handleExport() {
+        const exportOption = document.getElementById('exportSelect').value;
+
+        let dataToExport = [];
+        if (exportOption === 'all') {
             dataToExport = excelData;
-        } else if (type === 'shown') {
+        } else if (exportOption === 'shown') {
             dataToExport = searchResults;
         } else {
-            alert('Invalid export type');
-            return;
+            return; // Do nothing if no valid option is selected
         }
 
-        if (dataToExport.length === 0) {
-            alert('No data to export.');
-            return;
-        }
+        // Exclude specified columns from export
+        dataToExport = dataToExport.map(row => {
+            const newRow = {};
+            Object.keys(row).forEach(key => {
+                if (!excludedColumns.includes(key)) {
+                    newRow[key] = row[key];
+                }
+            });
+            return newRow;
+        });
 
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
 
-        // Create a download link and trigger a download
-        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
-        const blob = new Blob([s2ab(wbout)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = (type === 'all') ? 'all_data.xlsx' : 'shown_data.xlsx';
-        link.click();
-    }
-
-    // Helper function to convert string to array buffer
-    function s2ab(s) {
-        const buf = new ArrayBuffer(s.length);
-        const view = new Uint8Array(buf);
-        for (let i = 0; i < s.length; i++) {
-            view[i] = s.charCodeAt(i) & 0xFF;
-        }
-        return buf;
+        XLSX.writeFile(wb, `exported_data_${new Date().toISOString().slice(0, 10)}.xlsx`);
     }
 </script>
 
